@@ -218,7 +218,7 @@ const Sounds = (() => {
     startAmbient() {
       if (this._ambientAudio) return;
       try {
-        const a = new Audio('swamp-ambient.mp3');
+        const a = new Audio('sounds/swamp-ambient.mp3');
         a.loop = true;
         a.preload = 'auto';
         a.volume = sfxOn ? sfxVol * 0.35 : 0; // регулируется общей громкостью эффектов
