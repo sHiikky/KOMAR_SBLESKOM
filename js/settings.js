@@ -9,6 +9,7 @@ function showSettings(backFn) {
     const sfxVol   = Math.round(Sounds.getSfxVol()   * 100);
     const sfxOn    = Sounds.isSfxOn();
     const ctrl     = getControlMode();
+    const email    = (safeGet('vj_email') || '').trim();
 
     const ctrlOpts = [
       { id: 'buttons', icon: '🕹️', label: 'Кнопки' },
@@ -51,6 +52,15 @@ function showSettings(backFn) {
                 <input type="range" class="sett-range" id="sfxSlider"
                   min="0" max="100" value="${sfxVol}" ${sfxOn ? '' : 'disabled'}>
               </div>
+            </div>
+
+            <!-- АККАУНТ -->
+            <div class="swamp-panel-row" style="flex-direction:column;align-items:flex-start;gap:10px;padding:14px 14px 14px">
+              <span class="swamp-panel-name" style="font-size:10px;letter-spacing:1px;">👤 Аккаунт</span>
+              <div style="font-size:9px;color:rgba(255,255,255,0.5);width:100%;word-break:break-all;">${email || 'не указан'}</div>
+              <button class="swamp-pill-btn ghost" id="logoutBtn" style="min-width:auto;max-width:none;width:100%;min-height:36px;font-size:8px;color:#ff8a8a;border-color:rgba(255,120,120,0.35);">
+                Выйти из аккаунта
+              </button>
             </div>
 
           </div>
@@ -108,8 +118,21 @@ function showSettings(backFn) {
     document.getElementById('sfxToggle').addEventListener('click', () => { Sounds.setSfxOn(!Sounds.isSfxOn()); Sounds.click(); render(); });
     document.getElementById('sfxSlider').addEventListener('input', e => {
       Sounds.setSfxVol(parseInt(e.target.value) / 100);
+      Sounds.setAmbientVolume && Sounds.setAmbientVolume(parseInt(e.target.value) / 100);
       document.getElementById('sfxVolVal').textContent = e.target.value + '%';
       Sounds.click();
+    });
+
+    // Выход из аккаунта
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      Sounds.click();
+      const ok = confirm('Выйти из аккаунта? При следующем входе нужно будет заново ввести почту.');
+      if (!ok) return;
+      try {
+        localStorage.removeItem('vj_email');
+        localStorage.removeItem('vj_nickname');
+      } catch(e) {}
+      location.reload();
     });
   }
 
