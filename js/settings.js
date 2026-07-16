@@ -115,7 +115,14 @@ function showSettings(backFn) {
     });
 
     document.getElementById('settBackBtn').addEventListener('click', () => { Sounds.click(); backFn(); });
-    document.getElementById('sfxToggle').addEventListener('click', () => { Sounds.setSfxOn(!Sounds.isSfxOn()); Sounds.click(); render(); });
+    document.getElementById('sfxToggle').addEventListener('click', () => {
+      const newOn = !Sounds.isSfxOn();
+      Sounds.setSfxOn(newOn);
+      if (newOn) { Sounds.resumeAmbient ? Sounds.resumeAmbient() : Sounds.startAmbient(); }
+      else { Sounds.pauseAmbient ? Sounds.pauseAmbient() : Sounds.stopAmbient(); }
+      Sounds.click();
+      render();
+    });
     document.getElementById('sfxSlider').addEventListener('input', e => {
       Sounds.setSfxVol(parseInt(e.target.value) / 100);
       Sounds.setAmbientVolume && Sounds.setAmbientVolume(parseInt(e.target.value) / 100);
