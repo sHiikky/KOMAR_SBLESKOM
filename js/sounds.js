@@ -6,7 +6,9 @@
 const Sounds = (() => {
   let actx = null;
   let sfxVol   = parseFloat(localStorage.getItem('vj_sfx_vol')   ?? '0.6');
+  let musicVol = parseFloat(localStorage.getItem('vj_music_vol') ?? '0.4');
   let sfxOn    = (localStorage.getItem('vj_sfx_on')   ?? '1') === '1';
+  let musicOn  = (localStorage.getItem('vj_music_on') ?? '1') === '1';
 
   let jetSource  = null; // зацикленный джетпак
   let shieldHum  = null; // тихое гудение щита (синтетическое)
@@ -42,7 +44,8 @@ const Sounds = (() => {
   }
 
   async function playBuf(key, vol = 1, loop = false) {
-    if (!sfxOn) return null;
+    if (!sfxOn && !loop) return null;
+    if (loop && !musicOn) return null;
     try {
       const ac  = getCtx();
       const buf = await getBuffer(key);
@@ -52,7 +55,7 @@ const Sounds = (() => {
       src.loop   = loop;
       src.connect(gain);
       gain.connect(ac.destination);
-      gain.gain.setValueAtTime(sfxVol * vol, ac.currentTime);
+      gain.gain.setValueAtTime((loop ? musicVol : sfxVol) * vol, ac.currentTime);
       src.start();
       return { src, gain };
     } catch(e) { console.warn('playBuf', key, e); return null; }
@@ -111,25 +114,17 @@ const Sounds = (() => {
   return {
     preload,
 
-    setSfxVol(v) {
-      sfxVol = Math.max(0, Math.min(1, Number(v) || 0));
-      localStorage.setItem('vj_sfx_vol', sfxVol);
-      if (shieldHum) shieldHum.gain.gain.setValueAtTime(sfxVol * 0.06, getCtx().currentTime);
-      if (jetSource) jetSource.gain.gain.setValueAtTime(sfxVol * 0.5, getCtx().currentTime);
-      this.setAmbientVolume(sfxVol);
-    },
-    setSfxOn(on) {
-      sfxOn = Boolean(on);
-      localStorage.setItem('vj_sfx_on', sfxOn ? '1' : '0');
-      if (this._ambientAudio) {
-        this._ambientAudio.volume = sfxOn ? sfxVol * 0.35 : 0;
-        if (sfxOn) this._ambientAudio.play().catch(() => {});
-        else this._ambientAudio.pause();
-      }
-      if (!sfxOn) { this.jetStop(); this.shieldStop(); }
-    },
-    getSfxVol() { return sfxVol; },
-    isSfxOn()   { return sfxOn; },
+    setSfxVol(v)   { sfxVol   = v; localStorage.setItem('vj_sfx_vol', v);
+      if (shieldHum) shieldHum.gain.gain.setValueAtTime(v * 0.06, getCtx().currentTime); },
+    setMusicVol(v) { musicVol = v; localStorage.setItem('vj_music_vol', v);
+      if (jetSource) jetSource.gain.gain.setValueAtTime(v * 0.5, getCtx().currentTime); },
+    setSfxOn(on)   { sfxOn   = on; localStorage.setItem('vj_sfx_on',   on ? '1' : '0'); },
+    setMusicOn(on) { musicOn = on; localStorage.setItem('vj_music_on', on ? '1' : '0');
+      if (!on) { this.jetStop(); this.shieldStop(); } },
+    getSfxVol()    { return sfxVol; },
+    getMusicVol()  { return musicVol; },
+    isSfxOn()      { return sfxOn; },
+    isMusicOn()    { return musicOn; },
 
     /* Прыжок с обычной платформы */
     zwuk()  { playBuf('zwuk', sfxVol); },
@@ -212,18 +207,20 @@ const Sounds = (() => {
 
     /* ============================================================
        ФОНОВЫЕ ЗВУКИ ПРИРОДЫ — реальная запись болота (сверчки, лягушки, жабы)
-       Зациклена, играет тихо на фоне
+       Зациклена, играет тихо на фоне, привязана к общему ползунку "Звуки"
        ============================================================ */
     _ambientAudio: null,
     startAmbient() {
-      if (this._ambientAudio) return;
+      if (this._ambientAudio) {
+        if (sfxOn) { try { this._ambientAudio.play().catch(()=>{}); } catch(e) {} }
+        return;
+      }
       try {
         const a = new Audio('sounds/swamp-ambient.mp3');
         a.loop = true;
-        a.preload = 'auto';
-        a.volume = sfxOn ? sfxVol * 0.35 : 0; // регулируется общей громкостью эффектов
-        if (sfxOn) a.play().catch(() => {});
+        a.volume = sfxVol * 0.35; // тихий фон, привязан к общей громкости звуков
         this._ambientAudio = a;
+        if (sfxOn) a.play().catch(() => {});
       } catch(e) {}
     },
     stopAmbient() {
@@ -233,10 +230,13 @@ const Sounds = (() => {
       }
     },
     setAmbientVolume(v) {
-      if (this._ambientAudio) {
-        const volume = Math.max(0, Math.min(1, Number(v) || 0));
-        this._ambientAudio.volume = sfxOn ? volume * 0.35 : 0;
-      }
+      if (this._ambientAudio) this._ambientAudio.volume = v * 0.35;
+    },
+    pauseAmbient() {
+      if (this._ambientAudio) { try { this._ambientAudio.pause(); } catch(e) {} }
+    },
+    resumeAmbient() {
+      if (this._ambientAudio && sfxOn) { try { this._ambientAudio.play().catch(()=>{}); } catch(e) {} }
     },
   };
 })();
