@@ -1,6 +1,5 @@
 /* ============================================================
-   leaderboard.js — Supabase лидерборд для Василий-прыгун
-   Подключить в index.html: <script src="leaderboard.js"></script>
+   leaderboard.js — Supabase лидерборд
    ============================================================ */
 
 const SUPABASE_URL = 'https://pghaqyyomljttnzbgazd.supabase.co';
@@ -35,7 +34,7 @@ function containsBadWord(str) {
 // ── Объект Leaderboard ───────────────────────────────────────
 const Leaderboard = {
 
-  // Отправка результата через Edge Function (защищённо)
+  // Отправка результата через Edge Function 
   async submit(userId, username, score) {
     if (!score || score <= 0) return;
 
@@ -63,7 +62,7 @@ const Leaderboard = {
     this._saveLocal(list);
   },
 
-  // Получение топ-N (читаем напрямую из Supabase — чтение публично)
+  // Получение топ-N (читаем напрямую из Supabase )
   async top(n = 10) {
     try {
       const url = `${SUPABASE_URL}/rest/v1/leaderboard` +
